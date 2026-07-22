@@ -1,4 +1,7 @@
+mod config;
+
 fn main() {
     env_logger::init();
-    log::info!("floating-hide starting");
+    let cfg = config::Config::load();
+    log::info!("floating-hide starting (debug={})", cfg.debug);
 }
