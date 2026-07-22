@@ -1,0 +1,3 @@
+hide_offset = 300
+debug = false
+ignore = ["rofi", "waybar", "walker", "hyprpanel", "noctalia"]
