@@ -1,5 +1,6 @@
 mod config;
 mod ipc;
+mod types;
 
 fn main() {
     env_logger::init();
