@@ -48,5 +48,5 @@ impl Config {
 
 fn dirs_config_path() -> Option<PathBuf> {
     let home = std::env::var("HOME").ok()?;
-    Some(PathBuf::from(home).join(".config/floating-hide/config.toml"))
+    Some(PathBuf::from(home).join(".config/shy/config.toml"))
 }

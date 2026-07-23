@@ -1,4 +1,4 @@
-# floating-hide
+# shy
 
 Hyprland daemon that auto-hides inactive floating windows.
 
@@ -13,18 +13,18 @@ cargo install --path .
 ## Usage
 
 ```bash
-floating-hide
+shy
 ```
 
 Add to your Hyprland config:
 
 ```lua
-hl.exec_cmd("floating-hide")
+hl.exec_cmd("shy")
 ```
 
 ## Config
 
-Copy `config.toml` to `~/.config/floating-hide/config.toml`:
+Copy `config.toml` to `~/.config/shy/config.toml`:
 
 ```toml
 hide_offset = 300

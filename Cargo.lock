@@ -134,17 +134,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "877a4ace8713b0bcf2a4e7eec82529c029f1d0619886d18145fea96c3ffe5c0f"
 
 [[package]]
-name = "floating-hide"
-version = "0.1.0"
-dependencies = [
- "env_logger",
- "log",
- "serde",
- "serde_json",
- "toml",
-]
-
-[[package]]
 name = "hashbrown"
 version = "0.17.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -338,6 +327,17 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "bf41e0cfaf7226dca15e8197172c295a782857fcb97fad1808a166870dee75a3"
 dependencies = [
  "serde",
+]
+
+[[package]]
+name = "shy"
+version = "0.1.0"
+dependencies = [
+ "env_logger",
+ "log",
+ "serde",
+ "serde_json",
+ "toml",
 ]
 
 [[package]]
