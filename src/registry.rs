@@ -79,7 +79,7 @@ impl Registry {
             let off_x = monitors.monitor_id(&entry.monitor)
                 .map(|id| monitors.get_offscreen_x(id, hide_offset))
                 .unwrap_or(10000);
-            let cmd = format!("dispatch movewindow pixel {} {} addr:{}", off_x, entry.saved_y, addr);
+            let cmd = format!("dispatch hl.dsp.movewindow pixel {} {} addr:{}", off_x, entry.saved_y, addr);
             ipc.send_command(&cmd);
             log::info!("Hidden window {} to x={}", addr, off_x);
         }
