@@ -61,7 +61,7 @@ fn handle_open(
     payload: &str,
     registry: &mut Registry,
     ipc: &HyprIpc,
-    monitors: &MonitorCache,
+    _monitors: &MonitorCache,
     config: &Config,
 ) {
     // openwindow format: addr|workspace|class|title|...

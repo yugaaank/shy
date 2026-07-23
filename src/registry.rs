@@ -14,7 +14,7 @@ impl Registry {
         }
     }
 
-    pub fn scan(&mut self, ipc: &HyprIpc, monitors: &MonitorCache, hide_offset: i32) {
+    pub fn scan(&mut self, ipc: &HyprIpc, _monitors: &MonitorCache, _hide_offset: i32) {
         let response = ipc.send_command("clients -j");
         match serde_json::from_str::<Vec<crate::types::HyprClient>>(&response) {
             Ok(clients) => {
