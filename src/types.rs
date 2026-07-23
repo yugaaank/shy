@@ -25,7 +25,7 @@ pub struct MonitorGeometry {
 pub struct HyprClient {
     pub address: String,
     pub workspace: HyprWorkspace,
-    pub monitor: String,
+    pub monitor: i32,
     pub at: [i32; 2],
     pub size: [i32; 2],
     pub floating: bool,
@@ -42,6 +42,7 @@ pub struct HyprWorkspace {
 
 #[derive(Debug, Deserialize)]
 pub struct HyprMonitor {
+    pub id: i32,
     pub name: String,
     pub x: i32,
     pub y: i32,

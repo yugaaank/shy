@@ -1,4 +1,4 @@
-use std::io::{BufRead, BufReader, Write};
+use std::io::{BufRead, BufReader, Read, Write};
 use std::os::unix::net::UnixStream;
 
 pub struct HyprIpc {
@@ -31,7 +31,7 @@ impl HyprIpc {
 
         let mut reader = BufReader::new(&stream);
         let mut response = String::new();
-        reader.read_line(&mut response).expect("Failed to read response");
+        reader.read_to_string(&mut response).expect("Failed to read response");
         response.trim().to_string()
     }
 

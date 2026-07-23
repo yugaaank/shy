@@ -14,23 +14,24 @@ impl Registry {
         }
     }
 
-    pub fn scan(&mut self, ipc: &HyprIpc, _monitors: &MonitorCache, _hide_offset: i32) {
+    pub fn scan(&mut self, ipc: &HyprIpc, monitors: &MonitorCache, _hide_offset: i32) {
         let response = ipc.send_command("clients -j");
         match serde_json::from_str::<Vec<crate::types::HyprClient>>(&response) {
             Ok(clients) => {
                 for c in clients {
                     if c.floating && c.mapped && !c.hidden {
+                        let mon_name = monitors.monitor_name(c.monitor);
                         let entry = WindowEntry {
                             addr: c.address.clone(),
                             workspace: c.workspace.id,
-                            monitor: c.monitor.clone(),
+                            monitor: mon_name.clone(),
                             saved_x: c.at[0],
                             saved_y: c.at[1],
                             width: c.size[0],
                             height: c.size[1],
                             hidden: false,
                         };
-                        log::info!("Registered window {} on {}", c.address, c.monitor);
+                        log::info!("Registered window {} on {}", c.address, mon_name);
                         self.windows.insert(c.address, entry);
                     }
                 }
@@ -75,7 +76,9 @@ impl Registry {
                 return;
             }
             entry.hidden = true;
-            let off_x = monitors.get_offscreen_x(&entry.monitor, hide_offset);
+            let off_x = monitors.monitor_id(&entry.monitor)
+                .map(|id| monitors.get_offscreen_x(id, hide_offset))
+                .unwrap_or(10000);
             let cmd = format!("dispatch movewindow pixel {} {} addr:{}", off_x, entry.saved_y, addr);
             ipc.send_command(&cmd);
             log::info!("Hidden window {} to x={}", addr, off_x);
@@ -117,15 +120,16 @@ impl Registry {
         }
     }
 
-    pub fn update_floating(&mut self, addr: &str, floating: bool, ipc: &HyprIpc, _monitors: &MonitorCache) {
+    pub fn update_floating(&mut self, addr: &str, floating: bool, ipc: &HyprIpc, monitors: &MonitorCache) {
         if floating {
             let response = ipc.send_command("clients -j");
             if let Ok(clients) = serde_json::from_str::<Vec<crate::types::HyprClient>>(&response) {
                 if let Some(c) = clients.iter().find(|c| c.address == addr) {
+                    let mon_name = monitors.monitor_name(c.monitor);
                     self.register(
                         addr,
                         c.workspace.id,
-                        &c.monitor,
+                        &mon_name,
                         c.at[0],
                         c.at[1],
                         c.size[0],

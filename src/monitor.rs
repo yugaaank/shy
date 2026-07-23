@@ -3,7 +3,7 @@ use crate::types::MonitorGeometry;
 use std::collections::HashMap;
 
 pub struct MonitorCache {
-    pub monitors: HashMap<String, MonitorGeometry>,
+    pub monitors: HashMap<i32, MonitorGeometry>,
 }
 
 impl MonitorCache {
@@ -19,9 +19,9 @@ impl MonitorCache {
             Ok(monitors) => {
                 self.monitors.clear();
                 for m in monitors {
-                    log::info!("Monitor: {} {}x{}+{},{}", m.name, m.width, m.height, m.x, m.y);
+                    log::info!("Monitor {} ({}): {}x{}+{},{}", m.id, m.name, m.width, m.height, m.x, m.y);
                     self.monitors.insert(
-                        m.name.clone(),
+                        m.id,
                         MonitorGeometry {
                             name: m.name,
                             x: m.x,
@@ -36,10 +36,21 @@ impl MonitorCache {
         }
     }
 
-    pub fn get_offscreen_x(&self, monitor_name: &str, offset: i32) -> i32 {
+    pub fn get_offscreen_x(&self, monitor_id: i32, offset: i32) -> i32 {
         self.monitors
-            .get(monitor_name)
+            .get(&monitor_id)
             .map(|m| m.x + m.width + offset)
-            .unwrap_or(10000) // fallback
+            .unwrap_or(10000)
+    }
+
+    pub fn monitor_name(&self, monitor_id: i32) -> String {
+        self.monitors
+            .get(&monitor_id)
+            .map(|m| m.name.clone())
+            .unwrap_or_else(|| format!("monitor-{}", monitor_id))
+    }
+
+    pub fn monitor_id(&self, name: &str) -> Option<i32> {
+        self.monitors.iter().find(|(_, m)| m.name == name).map(|(id, _)| *id)
     }
 }

@@ -61,7 +61,7 @@ fn handle_open(
     payload: &str,
     registry: &mut Registry,
     ipc: &HyprIpc,
-    _monitors: &MonitorCache,
+    monitors: &MonitorCache,
     config: &Config,
 ) {
     // openwindow format: addr|workspace|class|title|...
@@ -88,10 +88,11 @@ fn handle_open(
 
     if let Some(c) = clients.iter().find(|c| c.address == addr) {
         if c.floating && c.mapped {
+            let mon_name = monitors.monitor_name(c.monitor);
             registry.register(
                 addr,
                 c.workspace.id,
-                &c.monitor,
+                &mon_name,
                 c.at[0],
                 c.at[1],
                 c.size[0],
