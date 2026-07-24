@@ -91,7 +91,7 @@ fn handle_focus(
     ipc: &HyprIpc,
     monitors: &MonitorCache,
     config: &Config,
-    state: &State,
+    state: &mut State,
 ) {
     let addr = normalize_addr(payload);
     if addr == "0x" {
@@ -137,6 +137,9 @@ fn handle_focus(
     if focused.floating && focused.mapped && !focused.hidden {
         // Focused window is floating → restore it
         registry.restore(&addr, ipc);
+        // Clear switcher flag so subsequent sudden mouse movements onto tiled windows are treated as hover!
+        state.switcher_active = false;
+        state.last_switcher_time = Instant::now() - Duration::from_secs(10);
     } else {
         // Focused window is tiled → hide floating windows only if switcher active or ignore_hover is false
         let is_switcher = state.switcher_active || state.last_switcher_time.elapsed() < Duration::from_millis(600);
@@ -145,6 +148,8 @@ fn handle_focus(
             for a in addrs {
                 registry.hide(&a, ipc, monitors, config.hide_offset);
             }
+            state.switcher_active = false;
+            state.last_switcher_time = Instant::now() - Duration::from_secs(10);
         } else {
             log::info!("Ignoring mouse hover focus change on tiled window {}", addr);
         }
