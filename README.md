@@ -13,7 +13,11 @@
 
 *Floating windows that know when to get out of the way.*
 
-[Watch the demo](assets/output.mp4)
+<div align="center">
+
+<video src="assets/output.mp4" width="100%" controls />
+
+</div>
 
 [Installation](#install) · [Configuration](#configuration) · [How It Works](#how-it-works)
 
