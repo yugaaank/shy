@@ -1,26 +1,41 @@
+<div align="center">
+
+<img src="assets/logo.png" width="140" />
+
 # shy
 
-A lightweight Hyprland daemon that auto-hides floating windows when you switch to tiled windows, and restores them when you switch back.
+**Auto-hide floating windows for Hyprland**
 
-Think of it like macOS's window behavior — floating utility windows stay out of the way until you need them.
+[![Hyprland](https://img.shields.io/badge/Hyprland-%E2%89%A5_0.56-blue?style=flat-square&logo=wayland&logoColor=white)](https://hyprland.org)
+[![Rust](https://img.shields.io/badge/Rust-stable-orange?style=flat-square&logo=rust&logoColor=white)](https://www.rust-lang.org)
+[![License](https://img.shields.io/badge/License-MIT-green?style=flat-square)](LICENSE)
+[![GitHub Stars](https://img.shields.io/github/stars/yugaaank/shy?style=flat-square&color=yellow)](https://github.com/yugaaank/shy)
+
+*Floating windows that know when to get out of the way.*
+
+[Installation](#install) · [Configuration](#configuration) · [How It Works](#how-it-works)
+
+---
+
+</div>
+
+## Why shy?
+
+Tiling window managers are great — until you have floating windows cluttering your view. **shy** makes floating windows disappear when you don't need them and reappear instantly when you do, with zero config required.
+
+Switch to a tiled window → floating windows vanish below the screen.
+Switch back → they're right where you left them. Instantly.
 
 ## Features
 
-- **Auto-hide on focus switch** — floating windows slide below the screen when you Alt+Tab to a tiled window
-- **Instant restore** — Alt+Tab back to a floating window and it reappears exactly where you left it
-- **Smart hover detection** — moving your mouse over a tiled window won't accidentally hide your floating windows (only keyboard/switcher focus changes trigger hiding)
-- **Zero animations** — all window movements are instantaneous, no sliding or fading
-- **Cursor warp** — cursor automatically moves to the center of a restored floating window for seamless interaction
-- **Position tracking** — manually drag or resize your floating windows and shy remembers the new position
-- **Window switcher aware** — detects Alt+Tab switchers (snappy-switcher, rofi, walker, etc.) for reliable focus change detection
-- **Per-window ignore list** — exclude specific windows by class or title
-- **Multi-monitor support** — works across multiple monitors
-- **Event-driven** — listens to Hyprland's IPC socket (no polling, zero CPU when idle)
-
-## Requirements
-
-- **Hyprland ≥ 0.56** (uses Noctalia Lua IPC dispatchers)
-- **Rust toolchain** (for building)
+- **🪟 Auto-hide on focus switch** — floating windows slide below the screen when you Alt+Tab to a tiled window
+- **⚡ Instant restore** — switch back to a floating window and it reappears exactly where you left it
+- **🖱️ Smart hover detection** — mouse hover won't accidentally hide your floating windows, only keyboard/switcher focus changes trigger hiding
+- **🚫 Zero animations** — all window movements are instantaneous, no sliding or fading
+- **🎯 Cursor warp** — cursor automatically moves to the center of a restored window
+- **📐 Position tracking** — drag or resize your floating windows freely, shy remembers the new position
+- **🖥️ Multi-monitor support** — works across all your monitors
+- **⏱️ Event-driven** — listens to Hyprland's IPC socket, zero CPU when idle
 
 ## Install
 
@@ -30,21 +45,16 @@ cd shy
 cargo install --path .
 ```
 
-## Usage
+## Quick Start
 
 ```bash
 shy
 ```
 
-For debug logging:
+Add to your Hyprland config for autostart:
 
-```bash
-RUST_LOG=info shy
-```
-
-### Hyprland Autostart
-
-Add to your Hyprland config (Noctalia Lua):
+<details>
+<summary><b>Noctalia (Lua config)</b></summary>
 
 ```lua
 hl.on("hyprland.start", function()
@@ -52,62 +62,87 @@ hl.on("hyprland.start", function()
 end)
 ```
 
-Or in classic Hyprland config:
+</details>
+
+<details>
+<summary><b>Classic (hyprlang config)</b></summary>
 
 ```conf
 exec-once = ~/.cargo/bin/shy
 ```
+
+</details>
 
 ## Configuration
 
 Create `~/.config/shy/config.toml`:
 
 ```toml
-# Pixels below the monitor edge to place hidden windows
 hide_offset = 300
-
-# Enable debug logging
 debug = false
-
-# Windows matching these class/title substrings are never managed by shy
 ignore = ["rofi", "waybar", "walker", "hyprpanel", "noctalia"]
-
-# Ignore mouse hover focus changes (only hide on keyboard/switcher focus)
-# Set to false if you want mouse hover to also trigger hiding
 ignore_hover = true
 ```
 
-### Config Options
+<details>
+<summary><b>Config Reference</b></summary>
 
 | Option | Type | Default | Description |
 |--------|------|---------|-------------|
-| `hide_offset` | `i32` | `300` | Distance below the monitor bottom edge to place hidden windows |
+| `hide_offset` | `int` | `300` | Pixels below the monitor edge to place hidden windows |
 | `debug` | `bool` | `false` | Enable debug logging |
 | `ignore` | `string[]` | `[]` | Window class/title substrings to exclude from management |
-| `ignore_hover` | `bool` | `true` | When `true`, only keyboard/switcher focus changes trigger hiding (mouse hover is ignored) |
+| `ignore_hover` | `bool` | `true` | Only keyboard/switcher focus triggers hiding (mouse hover ignored) |
+
+</details>
 
 ## How It Works
 
-1. **Connects** to Hyprland's UNIX domain socket (`.socket.sock` and `.socket2.sock`)
-2. **Scans** all existing floating windows on startup and registers them
-3. **Listens** for IPC events (`activewindow`, `openwindow`, `closewindow`, `changefloating`, `openlayer`, `closelayer`)
-4. **On tiled focus** — queries each floating window's current position from Hyprland, saves it, then moves the window below the screen
-5. **On floating focus** — moves the window back to its saved position and warps the cursor to its center
-6. **Switcher detection** — tracks `openlayer`/`closelayer` events for window switchers to distinguish keyboard focus from mouse hover
+```
+                  ┌─────────────┐
+                  │  Hyprland   │
+                  │  Socket IPC │
+                  └──────┬──────┘
+                         │ events
+                         ▼
+              ┌──────────────────────┐
+              │      shy daemon      │
+              ├──────────┬───────────┤
+              │ Handler  │ Registry  │
+              │ (events) │ (windows) │
+              └──────────┴───────────┘
+                         │
+            ┌────────────┼────────────┐
+            ▼            ▼            ▼
+    ┌──────────┐  ┌────────────┐  ┌──────────┐
+    │  Focus   │  │  Position  │  │  Monitor │
+    │ Tracking │  │  Save/Load │  │  Cache   │
+    └──────────┘  └────────────┘  └──────────┘
+```
+
+1. **Connects** to Hyprland's UNIX domain sockets
+2. **Scans** all existing floating windows on startup
+3. **Listens** for `activewindow`, `openwindow`, `closewindow`, `changefloating`, `openlayer`, `closelayer` events
+4. **On tiled focus** — queries each floating window's real position, saves it, moves the window below the screen
+5. **On floating focus** — restores the window to its saved position, warps cursor to center
 
 ## Architecture
 
 ```
 src/
-├── main.rs       — entry point, event loop
-├── handler.rs    — event dispatcher, switcher state, hover filtering
-├── registry.rs   — window tracking, hide/restore logic
-├── monitor.rs    — monitor geometry cache
-├── ipc.rs        — Hyprland UNIX socket IPC
-├── config.rs     — TOML config loading
-└── types.rs      — data structures
+├── main.rs       Entry point, event loop
+├── handler.rs    Event dispatch, switcher state, hover filtering
+├── registry.rs   Window tracking, hide/restore logic
+├── monitor.rs    Monitor geometry cache
+├── ipc.rs        Hyprland UNIX socket IPC
+├── config.rs     TOML config loading
+└── types.rs      Data structures
 ```
 
-## License
+<div align="center">
 
-MIT
+---
+
+**shy** is built for [Hyprland](https://hyprland.org) · MIT License
+
+</div>
