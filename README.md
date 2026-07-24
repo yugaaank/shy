@@ -111,21 +111,6 @@ bind = ALT SHIFT, Tab, cyclenext, prev
 </details>
 
 <details>
-<summary><b>Snappy Switcher</b></summary>
-
-```conf
-plugin {
-    snappy-switcher {
-        # your config
-    }
-}
-
-bind = ALT, Tab, snappy-switcher
-```
-
-</details>
-
-<details>
 <summary><b>Custom dispatch</b></summary>
 
 ```conf
