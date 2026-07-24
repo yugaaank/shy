@@ -138,7 +138,7 @@ fn handle_focus(
 
     if focused.floating && focused.mapped && !focused.hidden {
         // Focused window is floating → restore it
-        registry.restore(&addr, ipc);
+        registry.restore(&addr, ipc, monitors, config.hide_offset);
         // Clear switcher flag so subsequent sudden mouse movements onto tiled windows are treated as hover!
         state.switcher_active = false;
         state.last_switcher_time = Instant::now() - Duration::from_secs(10);

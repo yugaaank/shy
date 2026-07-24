@@ -14,26 +14,37 @@ impl Registry {
         }
     }
 
-    pub fn scan(&mut self, ipc: &HyprIpc, monitors: &MonitorCache, _hide_offset: i32) {
+    pub fn scan(&mut self, ipc: &HyprIpc, monitors: &MonitorCache, hide_offset: i32) {
         let response = ipc.send_command("j/clients");
         match serde_json::from_str::<Vec<crate::types::HyprClient>>(&response) {
             Ok(clients) => {
                 for c in clients {
                     if c.floating && c.mapped && !c.hidden {
                         let mon_name = monitors.monitor_name(c.monitor);
+                        let off_x = monitors
+                            .monitor_id(&mon_name)
+                            .map(|id| monitors.get_offscreen_x(id, hide_offset))
+                            .unwrap_or(1920);
+
+                        let valid_x = if c.at[0] >= (off_x - 50) {
+                            (off_x - hide_offset - c.size[0]) / 2
+                        } else {
+                            c.at[0]
+                        };
+
                         let entry = WindowEntry {
                             addr: c.address.clone(),
                             workspace: c.workspace.id,
                             monitor: mon_name.clone(),
-                            saved_x: c.at[0],
+                            saved_x: valid_x,
                             saved_y: c.at[1],
                             width: c.size[0],
                             height: c.size[1],
-                            hidden: false,
+                            hidden: c.at[0] >= (off_x - 50),
                         };
                         let prop_cmd = format!("dispatch hl.dsp.window.set_prop({{ prop = \"animation\", value = \"none\", window = \"address:{}\" }})", c.address);
                         ipc.send_command(&prop_cmd);
-                        log::info!("Registered window {} on {}", c.address, mon_name);
+                        log::info!("Registered window {} on {} with saved_x={}", c.address, mon_name, valid_x);
                         self.windows.insert(c.address, entry);
                     }
                 }
@@ -65,7 +76,7 @@ impl Registry {
             .unwrap_or(1920);
 
         let valid_x = if x >= (off_x - 50) {
-            100
+            (off_x - hide_offset - width) / 2
         } else {
             x
         };
@@ -78,7 +89,7 @@ impl Registry {
             saved_y: y,
             width,
             height,
-            hidden: false,
+            hidden: x >= (off_x - 50),
         };
         let prop_cmd = format!("dispatch hl.dsp.window.set_prop({{ prop = \"animation\", value = \"none\", window = \"address:{}\" }})", addr);
         ipc.send_command(&prop_cmd);
@@ -107,8 +118,20 @@ impl Registry {
         }
     }
 
-    pub fn restore(&mut self, addr: &str, ipc: &HyprIpc) {
+    pub fn restore(&mut self, addr: &str, ipc: &HyprIpc, monitors: &MonitorCache, hide_offset: i32) {
         if let Some(entry) = self.windows.get_mut(addr) {
+            let off_x = monitors.monitor_id(&entry.monitor)
+                .map(|id| monitors.get_offscreen_x(id, hide_offset))
+                .unwrap_or(1920);
+
+            if entry.saved_x >= (off_x - 50) {
+                entry.saved_x = (off_x - hide_offset - entry.width) / 2;
+                if entry.saved_x < 50 {
+                    entry.saved_x = 100;
+                }
+                log::warn!("Reset corrupt saved_x for {} to {}", addr, entry.saved_x);
+            }
+
             entry.hidden = false;
             let cmd = format!("dispatch hl.dsp.window.move({{ x = {}, y = {}, window = \"address:{}\" }})", entry.saved_x, entry.saved_y, addr);
             ipc.send_command(&cmd);
@@ -122,10 +145,10 @@ impl Registry {
         }
     }
 
-    pub fn restore_all(&mut self, ipc: &HyprIpc) {
+    pub fn restore_all(&mut self, ipc: &HyprIpc, monitors: &MonitorCache, hide_offset: i32) {
         let addrs: Vec<String> = self.windows.keys().cloned().collect();
         for addr in addrs {
-            self.restore(&addr, ipc);
+            self.restore(&addr, ipc, monitors, hide_offset);
         }
     }
 
