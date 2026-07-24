@@ -112,13 +112,31 @@ impl Registry {
             if entry.hidden {
                 return;
             }
+
+            // Query current position from Hyprland before hiding so manual drags are captured
+            let response = ipc.send_command("j/clients");
+            if let Ok(clients) = serde_json::from_str::<Vec<crate::types::HyprClient>>(&response) {
+                if let Some(c) = clients.iter().find(|c| c.address == addr) {
+                    let off_y = monitors.monitor_id(&entry.monitor)
+                        .map(|id| monitors.get_offscreen_y(id, hide_offset))
+                        .unwrap_or(1200);
+                    if c.at[1] < (off_y - 50) {
+                        entry.saved_x = c.at[0];
+                        entry.saved_y = c.at[1];
+                    }
+                    // Also update size in case of resize
+                    entry.width = c.size[0];
+                    entry.height = c.size[1];
+                }
+            }
+
             entry.hidden = true;
             let off_y = monitors.monitor_id(&entry.monitor)
                 .map(|id| monitors.get_offscreen_y(id, hide_offset))
                 .unwrap_or(10000);
             let cmd = format!("dispatch hl.dsp.window.move({{ x = {}, y = {}, window = \"address:{}\" }})", entry.saved_x, off_y, addr);
             ipc.send_command(&cmd);
-            log::info!("Hidden window {} to y={}", addr, off_y);
+            log::info!("Hidden window {} to y={} (saved pos: {}, {})", addr, off_y, entry.saved_x, entry.saved_y);
         }
     }
 
