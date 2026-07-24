@@ -142,6 +142,10 @@ impl Registry {
 
     pub fn restore(&mut self, addr: &str, ipc: &HyprIpc, monitors: &MonitorCache, hide_offset: i32) {
         if let Some(entry) = self.windows.get_mut(addr) {
+            if !entry.hidden {
+                return;
+            }
+
             let off_y = monitors.monitor_id(&entry.monitor)
                 .map(|id| monitors.get_offscreen_y(id, hide_offset))
                 .unwrap_or(1200);
