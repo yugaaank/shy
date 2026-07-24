@@ -14,7 +14,7 @@ impl MonitorCache {
     }
 
     pub fn refresh(&mut self, ipc: &HyprIpc) {
-        let response = ipc.send_command("monitors -j");
+        let response = ipc.send_command("j/monitors");
         match serde_json::from_str::<Vec<crate::types::HyprMonitor>>(&response) {
             Ok(monitors) => {
                 self.monitors.clear();

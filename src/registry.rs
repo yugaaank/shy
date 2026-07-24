@@ -15,7 +15,7 @@ impl Registry {
     }
 
     pub fn scan(&mut self, ipc: &HyprIpc, monitors: &MonitorCache, _hide_offset: i32) {
-        let response = ipc.send_command("clients -j");
+        let response = ipc.send_command("j/clients");
         match serde_json::from_str::<Vec<crate::types::HyprClient>>(&response) {
             Ok(clients) => {
                 for c in clients {
@@ -79,7 +79,7 @@ impl Registry {
             let off_x = monitors.monitor_id(&entry.monitor)
                 .map(|id| monitors.get_offscreen_x(id, hide_offset))
                 .unwrap_or(10000);
-            let cmd = format!("dispatch hl.dsp.movewindow pixel {} {} addr:{}", off_x, entry.saved_y, addr);
+            let cmd = format!("dispatch hl.dsp.window.move({{ x = {}, y = {}, window = \"address:{}\" }})", off_x, entry.saved_y, addr);
             ipc.send_command(&cmd);
             log::info!("Hidden window {} to x={}", addr, off_x);
         }
@@ -91,7 +91,7 @@ impl Registry {
                 return;
             }
             entry.hidden = false;
-            let cmd = format!("dispatch movewindow pixel {} {} addr:{}", entry.saved_x, entry.saved_y, addr);
+            let cmd = format!("dispatch hl.dsp.window.move({{ x = {}, y = {}, window = \"address:{}\" }})", entry.saved_x, entry.saved_y, addr);
             ipc.send_command(&cmd);
             log::info!("Restored window {} to {},{}", addr, entry.saved_x, entry.saved_y);
         }
@@ -122,7 +122,7 @@ impl Registry {
 
     pub fn update_floating(&mut self, addr: &str, floating: bool, ipc: &HyprIpc, monitors: &MonitorCache) {
         if floating {
-            let response = ipc.send_command("clients -j");
+            let response = ipc.send_command("j/clients");
             if let Ok(clients) = serde_json::from_str::<Vec<crate::types::HyprClient>>(&response) {
                 if let Some(c) = clients.iter().find(|c| c.address == addr) {
                     let mon_name = monitors.monitor_name(c.monitor);

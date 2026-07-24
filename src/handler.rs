@@ -18,8 +18,10 @@ pub fn handle(
     let event_name = parts[0];
     let payload = parts[1];
 
+    log::info!("Received event: {} >> {}", event_name, payload);
+
     match event_name {
-        "activewindowv2" => handle_focus(payload, registry, ipc, monitors, config),
+        "activewindowv2" | "activewindow" => handle_focus(payload, registry, ipc, monitors, config),
         "openwindow" => handle_open(payload, registry, ipc, monitors, config),
         "closewindow" => handle_close(payload, registry),
         "movewindow" => handle_move(payload, registry),
@@ -31,21 +33,41 @@ pub fn handle(
     }
 }
 
-fn handle_focus(addr: &str, registry: &mut Registry, ipc: &HyprIpc, monitors: &MonitorCache, config: &Config) {
-    let response = ipc.send_command("clients -j");
+fn normalize_addr(raw: &str) -> String {
+    let clean = raw.split(',').next().unwrap_or(raw).trim();
+    if clean.starts_with("0x") {
+        clean.to_string()
+    } else {
+        format!("0x{}", clean)
+    }
+}
+
+fn handle_focus(payload: &str, registry: &mut Registry, ipc: &HyprIpc, monitors: &MonitorCache, config: &Config) {
+    let addr = normalize_addr(payload);
+    if addr == "0x" {
+        return;
+    }
+
+    let response = ipc.send_command("j/clients");
     let clients: Vec<HyprClient> = match serde_json::from_str(&response) {
         Ok(c) => c,
-        Err(_) => return,
+        Err(e) => {
+            log::error!("Failed to parse clients JSON in handle_focus: {}", e);
+            return;
+        }
     };
 
     let focused = match clients.iter().find(|c| c.address == addr) {
         Some(c) => c,
-        None => return,
+        None => {
+            log::debug!("Focused window {} not found in clients list", addr);
+            return;
+        }
     };
 
     if focused.floating && focused.mapped && !focused.hidden {
         // Focused window is floating → restore it
-        registry.restore(addr, ipc);
+        registry.restore(&addr, ipc);
     } else {
         // Focused window is tiled → hide all floating
         // Layer surfaces, bars, notifications etc. don't appear in clients -j,
@@ -69,7 +91,7 @@ fn handle_open(
     if fields.len() < 4 {
         return;
     }
-    let addr = fields[0];
+    let addr = normalize_addr(fields[0]);
     let class = fields[2];
     let title = fields[3];
 
@@ -80,7 +102,7 @@ fn handle_open(
     // Fetch full client info
     // Layer surfaces, bars, notifications etc. don't appear in clients -j,
     // so they're automatically filtered out by the find() call below.
-    let response = ipc.send_command("clients -j");
+    let response = ipc.send_command("j/clients");
     let clients: Vec<HyprClient> = match serde_json::from_str(&response) {
         Ok(c) => c,
         Err(_) => return,
@@ -90,7 +112,7 @@ fn handle_open(
         if c.floating && c.mapped {
             let mon_name = monitors.monitor_name(c.monitor);
             registry.register(
-                addr,
+                &addr,
                 c.workspace.id,
                 &mon_name,
                 c.at[0],
@@ -102,8 +124,9 @@ fn handle_open(
     }
 }
 
-fn handle_close(addr: &str, registry: &mut Registry) {
-    registry.remove(addr);
+fn handle_close(payload: &str, registry: &mut Registry) {
+    let addr = normalize_addr(payload);
+    registry.remove(&addr);
 }
 
 fn handle_move(payload: &str, registry: &mut Registry) {
@@ -112,9 +135,9 @@ fn handle_move(payload: &str, registry: &mut Registry) {
     if fields.len() < 3 {
         return;
     }
-    let addr = fields[0];
+    let addr = normalize_addr(fields[0]);
     if let (Ok(x), Ok(y)) = (fields[1].parse::<i32>(), fields[2].parse::<i32>()) {
-        registry.update_position(addr, x, y);
+        registry.update_position(&addr, x, y);
     }
 }
 
@@ -129,7 +152,7 @@ fn handle_float_change(
     if fields.len() < 2 {
         return;
     }
-    let addr = fields[0];
+    let addr = normalize_addr(fields[0]);
     let floating = fields[1] == "1";
-    registry.update_floating(addr, floating, ipc, monitors);
+    registry.update_floating(&addr, floating, ipc, monitors);
 }
