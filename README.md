@@ -96,9 +96,47 @@ ignore_hover = true
 
 </details>
 
-## How It Works
+## Keybind Setup
 
-Shy uses Hyprland's `activewindow` IPC event — it triggers on any focus change, not just Alt+Tab. This means it works with your keybinds, mouse clicks, `hyprctl dispatch`, rofi, walker, or any other tool that changes focus.
+Shy triggers on `activewindow` events — any focus change hides/restores floating windows. Here's how to set up common keybinds:
+
+<details>
+<summary><b>Alt+Tab (cyclenext)</b></summary>
+
+```conf
+bind = ALT, Tab, cyclenext
+bind = ALT SHIFT, Tab, cyclenext, prev
+```
+
+</details>
+
+<details>
+<summary><b>Snappy Switcher</b></summary>
+
+```conf
+plugin {
+    snappy-switcher {
+        # your config
+    }
+}
+
+bind = ALT, Tab, snappy-switcher
+```
+
+</details>
+
+<details>
+<summary><b>Custom dispatch</b></summary>
+
+```conf
+bind = ALT, Tab, focuscurrentorlast
+```
+
+</details>
+
+Any keybind that changes window focus will work with shy.
+
+## How It Works
 
 ```
                   ┌─────────────┐
