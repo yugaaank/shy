@@ -79,10 +79,11 @@ impl Registry {
             let off_x = monitors.monitor_id(&entry.monitor)
                 .map(|id| monitors.get_offscreen_x(id, hide_offset))
                 .unwrap_or(10000);
-            ipc.send_command("eval hl.config({ animations = { enabled = false } })");
-            let move_cmd = format!("dispatch hl.dsp.window.move({{ x = {}, y = {}, window = \"address:{}\" }})", off_x, entry.saved_y, addr);
-            ipc.send_command(&move_cmd);
-            ipc.send_command("eval hl.config({ animations = { enabled = true } })");
+            let eval_script = format!(
+                "eval hl.dsp.window.set_prop({{ prop = \"animation\", value = \"none\", window = \"address:{}\" }}); hl.dsp.window.move({{ x = {}, y = {}, window = \"address:{}\" }})",
+                addr, off_x, entry.saved_y, addr
+            );
+            ipc.send_command(&eval_script);
             log::info!("Hidden window {} to x={}", addr, off_x);
         }
     }
@@ -93,10 +94,11 @@ impl Registry {
                 return;
             }
             entry.hidden = false;
-            ipc.send_command("eval hl.config({ animations = { enabled = false } })");
-            let move_cmd = format!("dispatch hl.dsp.window.move({{ x = {}, y = {}, window = \"address:{}\" }})", entry.saved_x, entry.saved_y, addr);
-            ipc.send_command(&move_cmd);
-            ipc.send_command("eval hl.config({ animations = { enabled = true } })");
+            let eval_script = format!(
+                "eval hl.dsp.window.set_prop({{ prop = \"animation\", value = \"none\", window = \"address:{}\" }}); hl.dsp.window.move({{ x = {}, y = {}, window = \"address:{}\" }})",
+                addr, entry.saved_x, entry.saved_y, addr
+            );
+            ipc.send_command(&eval_script);
             log::info!("Restored window {} to {},{}", addr, entry.saved_x, entry.saved_y);
         }
     }
