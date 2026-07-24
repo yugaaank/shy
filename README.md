@@ -15,7 +15,11 @@
 
 <div align="center">
 
-<video src="assets/output.mp4" width="100%" controls />
+<a href="assets/output.mp4">
+
+<img src="assets/demo-thumb.png" width="100%" alt="Demo video" />
+
+</a>
 
 </div>
 
