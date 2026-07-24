@@ -28,7 +28,7 @@ Switch back → they're right where you left them. Instantly.
 
 ## Features
 
-- **Auto-hide on focus switch** — floating windows slide below the screen when you Alt+Tab to a tiled window
+- **Auto-hide on focus switch** — floating windows slide below the screen whenever you switch to a tiled window, regardless of how you switch (keybind, mouse click, dispatch command, switcher, etc.)
 - **Instant restore** — switch back to a floating window and it reappears exactly where you left it
 - **Smart hover detection** — mouse hover won't accidentally hide your floating windows, only keyboard/switcher focus changes trigger hiding
 - **Zero animations** — all window movements are instantaneous, no sliding or fading
@@ -97,6 +97,8 @@ ignore_hover = true
 </details>
 
 ## How It Works
+
+Shy uses Hyprland's `activewindow` IPC event — it triggers on any focus change, not just Alt+Tab. This means it works with your keybinds, mouse clicks, `hyprctl dispatch`, rofi, walker, or any other tool that changes focus.
 
 ```
                   ┌─────────────┐
