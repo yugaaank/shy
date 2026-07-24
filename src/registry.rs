@@ -55,17 +55,17 @@ impl Registry {
         monitors: &MonitorCache,
         hide_offset: i32,
     ) {
+        if self.windows.contains_key(addr) {
+            return;
+        }
+
         let off_x = monitors
             .monitor_id(monitor)
             .map(|id| monitors.get_offscreen_x(id, hide_offset))
             .unwrap_or(1920);
 
         let valid_x = if x >= (off_x - 50) {
-            if let Some(existing) = self.windows.get(addr) {
-                existing.saved_x
-            } else {
-                100
-            }
+            100
         } else {
             x
         };
@@ -109,9 +109,6 @@ impl Registry {
 
     pub fn restore(&mut self, addr: &str, ipc: &HyprIpc) {
         if let Some(entry) = self.windows.get_mut(addr) {
-            if !entry.hidden {
-                return;
-            }
             entry.hidden = false;
             let cmd = format!("dispatch hl.dsp.window.move({{ x = {}, y = {}, window = \"address:{}\" }})", entry.saved_x, entry.saved_y, addr);
             ipc.send_command(&cmd);
