@@ -31,6 +31,8 @@ impl Registry {
                             height: c.size[1],
                             hidden: false,
                         };
+                        let prop_cmd = format!("dispatch hl.dsp.window.set_prop({{ prop = \"animation\", value = \"none\", window = \"address:{}\" }})", c.address);
+                        ipc.send_command(&prop_cmd);
                         log::info!("Registered window {} on {}", c.address, mon_name);
                         self.windows.insert(c.address, entry);
                     }
@@ -42,6 +44,7 @@ impl Registry {
 
     pub fn register(
         &mut self,
+        ipc: &HyprIpc,
         addr: &str,
         workspace: i32,
         monitor: &str,
@@ -60,6 +63,8 @@ impl Registry {
             height,
             hidden: false,
         };
+        let prop_cmd = format!("dispatch hl.dsp.window.set_prop({{ prop = \"animation\", value = \"none\", window = \"address:{}\" }})", addr);
+        ipc.send_command(&prop_cmd);
         log::info!("Registered new window {}", addr);
         self.windows.insert(addr.to_string(), entry);
     }
@@ -79,11 +84,8 @@ impl Registry {
             let off_x = monitors.monitor_id(&entry.monitor)
                 .map(|id| monitors.get_offscreen_x(id, hide_offset))
                 .unwrap_or(10000);
-            let eval_script = format!(
-                "eval hl.dsp.window.set_prop({{ prop = \"animation\", value = \"none\", window = \"address:{}\" }}); hl.dsp.window.move({{ x = {}, y = {}, window = \"address:{}\" }})",
-                addr, off_x, entry.saved_y, addr
-            );
-            ipc.send_command(&eval_script);
+            let cmd = format!("dispatch hl.dsp.window.move({{ x = {}, y = {}, window = \"address:{}\" }})", off_x, entry.saved_y, addr);
+            ipc.send_command(&cmd);
             log::info!("Hidden window {} to x={}", addr, off_x);
         }
     }
@@ -94,11 +96,8 @@ impl Registry {
                 return;
             }
             entry.hidden = false;
-            let eval_script = format!(
-                "eval hl.dsp.window.set_prop({{ prop = \"animation\", value = \"none\", window = \"address:{}\" }}); hl.dsp.window.move({{ x = {}, y = {}, window = \"address:{}\" }})",
-                addr, entry.saved_x, entry.saved_y, addr
-            );
-            ipc.send_command(&eval_script);
+            let cmd = format!("dispatch hl.dsp.window.move({{ x = {}, y = {}, window = \"address:{}\" }})", entry.saved_x, entry.saved_y, addr);
+            ipc.send_command(&cmd);
             log::info!("Restored window {} to {},{}", addr, entry.saved_x, entry.saved_y);
         }
     }
@@ -133,6 +132,7 @@ impl Registry {
                 if let Some(c) = clients.iter().find(|c| c.address == addr) {
                     let mon_name = monitors.monitor_name(c.monitor);
                     self.register(
+                        ipc,
                         addr,
                         c.workspace.id,
                         &mon_name,

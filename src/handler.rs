@@ -112,6 +112,7 @@ fn handle_open(
         if c.floating && c.mapped {
             let mon_name = monitors.monitor_name(c.monitor);
             registry.register(
+                ipc,
                 &addr,
                 c.workspace.id,
                 &mon_name,
