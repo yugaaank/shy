@@ -13,6 +13,7 @@ fn main() {
     log::info!("floating-hide starting (debug={})", config.debug);
 
     let ipc = ipc::HyprIpc::connect();
+    ipc.send_command("eval hl.animation({ leaf = \"windowsMove\", enabled = false, speed = 0 })");
     let mut monitors = monitor::MonitorCache::new();
     monitors.refresh(&ipc);
 
