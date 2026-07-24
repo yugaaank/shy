@@ -54,7 +54,7 @@ shy
 Add to your Hyprland config for autostart:
 
 <details>
-<summary><b>Noctalia (Lua config)</b></summary>
+<summary><b>New Hyprland (Lua config)</b></summary>
 
 ```lua
 hl.on("hyprland.start", function()
