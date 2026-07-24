@@ -68,7 +68,7 @@ fn handle_close_layer(payload: &str, state: &mut State) {
     if is_switcher_layer(payload) {
         log::info!("Switcher layer closed: {}", payload);
         state.switcher_active = false;
-        state.last_switcher_time = Instant::now();
+        state.last_switcher_time = Instant::now() - Duration::from_secs(10);
     }
 }
 
