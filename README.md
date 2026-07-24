@@ -28,14 +28,14 @@ Switch back → they're right where you left them. Instantly.
 
 ## Features
 
-- **🪟 Auto-hide on focus switch** — floating windows slide below the screen when you Alt+Tab to a tiled window
-- **⚡ Instant restore** — switch back to a floating window and it reappears exactly where you left it
-- **🖱️ Smart hover detection** — mouse hover won't accidentally hide your floating windows, only keyboard/switcher focus changes trigger hiding
-- **🚫 Zero animations** — all window movements are instantaneous, no sliding or fading
-- **🎯 Cursor warp** — cursor automatically moves to the center of a restored window
-- **📐 Position tracking** — drag or resize your floating windows freely, shy remembers the new position
-- **🖥️ Multi-monitor support** — works across all your monitors
-- **⏱️ Event-driven** — listens to Hyprland's IPC socket, zero CPU when idle
+- **Auto-hide on focus switch** — floating windows slide below the screen when you Alt+Tab to a tiled window
+- **Instant restore** — switch back to a floating window and it reappears exactly where you left it
+- **Smart hover detection** — mouse hover won't accidentally hide your floating windows, only keyboard/switcher focus changes trigger hiding
+- **Zero animations** — all window movements are instantaneous, no sliding or fading
+- **Cursor warp** — cursor automatically moves to the center of a restored window
+- **Position tracking** — drag or resize your floating windows freely, shy remembers the new position
+- **Multi-monitor support** — works across all your monitors
+- **Event-driven** — listens to Hyprland's IPC socket, zero CPU when idle
 
 ## Install
 
