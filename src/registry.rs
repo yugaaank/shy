@@ -21,30 +21,32 @@ impl Registry {
                 for c in clients {
                     if c.floating && c.mapped && !c.hidden {
                         let mon_name = monitors.monitor_name(c.monitor);
-                        let off_x = monitors
+                        let off_y = monitors
                             .monitor_id(&mon_name)
-                            .map(|id| monitors.get_offscreen_x(id, hide_offset))
-                            .unwrap_or(1920);
+                            .map(|id| monitors.get_offscreen_y(id, hide_offset))
+                            .unwrap_or(1200);
 
-                        let valid_x = if c.at[0] >= (off_x - 50) {
-                            (off_x - hide_offset - c.size[0]) / 2
+                        let is_offscreen = c.at[1] >= (off_y - 50);
+
+                        let valid_y = if is_offscreen {
+                            200
                         } else {
-                            c.at[0]
+                            c.at[1]
                         };
 
                         let entry = WindowEntry {
                             addr: c.address.clone(),
                             workspace: c.workspace.id,
                             monitor: mon_name.clone(),
-                            saved_x: valid_x,
-                            saved_y: c.at[1],
+                            saved_x: c.at[0],
+                            saved_y: valid_y,
                             width: c.size[0],
                             height: c.size[1],
-                            hidden: c.at[0] >= (off_x - 50),
+                            hidden: is_offscreen,
                         };
                         let prop_cmd = format!("dispatch hl.dsp.window.set_prop({{ prop = \"animation\", value = \"none\", window = \"address:{}\" }})", c.address);
                         ipc.send_command(&prop_cmd);
-                        log::info!("Registered window {} on {} with saved_x={}", c.address, mon_name, valid_x);
+                        log::info!("Registered window {} on {} with saved_y={}", c.address, mon_name, valid_y);
                         self.windows.insert(c.address, entry);
                     }
                 }
@@ -70,30 +72,32 @@ impl Registry {
             return;
         }
 
-        let off_x = monitors
+        let off_y = monitors
             .monitor_id(monitor)
-            .map(|id| monitors.get_offscreen_x(id, hide_offset))
-            .unwrap_or(1920);
+            .map(|id| monitors.get_offscreen_y(id, hide_offset))
+            .unwrap_or(1200);
 
-        let valid_x = if x >= (off_x - 50) {
-            (off_x - hide_offset - width) / 2
+        let is_offscreen = y >= (off_y - 50);
+
+        let valid_y = if is_offscreen {
+            200
         } else {
-            x
+            y
         };
 
         let entry = WindowEntry {
             addr: addr.to_string(),
             workspace,
             monitor: monitor.to_string(),
-            saved_x: valid_x,
-            saved_y: y,
+            saved_x: x,
+            saved_y: valid_y,
             width,
             height,
-            hidden: x >= (off_x - 50),
+            hidden: is_offscreen,
         };
         let prop_cmd = format!("dispatch hl.dsp.window.set_prop({{ prop = \"animation\", value = \"none\", window = \"address:{}\" }})", addr);
         ipc.send_command(&prop_cmd);
-        log::info!("Registered new window {} with saved_x={}", addr, valid_x);
+        log::info!("Registered new window {} with saved_y={}", addr, valid_y);
         self.windows.insert(addr.to_string(), entry);
     }
 
@@ -109,27 +113,24 @@ impl Registry {
                 return;
             }
             entry.hidden = true;
-            let off_x = monitors.monitor_id(&entry.monitor)
-                .map(|id| monitors.get_offscreen_x(id, hide_offset))
+            let off_y = monitors.monitor_id(&entry.monitor)
+                .map(|id| monitors.get_offscreen_y(id, hide_offset))
                 .unwrap_or(10000);
-            let cmd = format!("dispatch hl.dsp.window.move({{ x = {}, y = {}, window = \"address:{}\" }})", off_x, entry.saved_y, addr);
+            let cmd = format!("dispatch hl.dsp.window.move({{ x = {}, y = {}, window = \"address:{}\" }})", entry.saved_x, off_y, addr);
             ipc.send_command(&cmd);
-            log::info!("Hidden window {} to x={}", addr, off_x);
+            log::info!("Hidden window {} to y={}", addr, off_y);
         }
     }
 
     pub fn restore(&mut self, addr: &str, ipc: &HyprIpc, monitors: &MonitorCache, hide_offset: i32) {
         if let Some(entry) = self.windows.get_mut(addr) {
-            let off_x = monitors.monitor_id(&entry.monitor)
-                .map(|id| monitors.get_offscreen_x(id, hide_offset))
-                .unwrap_or(1920);
+            let off_y = monitors.monitor_id(&entry.monitor)
+                .map(|id| monitors.get_offscreen_y(id, hide_offset))
+                .unwrap_or(1200);
 
-            if entry.saved_x >= (off_x - 50) {
-                entry.saved_x = (off_x - hide_offset - entry.width) / 2;
-                if entry.saved_x < 50 {
-                    entry.saved_x = 100;
-                }
-                log::warn!("Reset corrupt saved_x for {} to {}", addr, entry.saved_x);
+            if entry.saved_y >= (off_y - 50) {
+                entry.saved_y = 200;
+                log::warn!("Reset corrupt saved_y for {} to {}", addr, entry.saved_y);
             }
 
             entry.hidden = false;
@@ -161,10 +162,10 @@ impl Registry {
 
     pub fn update_position(&mut self, addr: &str, x: i32, y: i32, monitors: &MonitorCache, hide_offset: i32) {
         if let Some(entry) = self.windows.get_mut(addr) {
-            let off_x = monitors.monitor_id(&entry.monitor)
-                .map(|id| monitors.get_offscreen_x(id, hide_offset))
-                .unwrap_or(1920);
-            if !entry.hidden && x < (off_x - 50) {
+            let off_y = monitors.monitor_id(&entry.monitor)
+                .map(|id| monitors.get_offscreen_y(id, hide_offset))
+                .unwrap_or(1200);
+            if !entry.hidden && y < (off_y - 50) {
                 entry.saved_x = x;
                 entry.saved_y = y;
             }

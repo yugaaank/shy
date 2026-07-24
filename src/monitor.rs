@@ -43,6 +43,13 @@ impl MonitorCache {
             .unwrap_or(10000)
     }
 
+    pub fn get_offscreen_y(&self, monitor_id: i32, offset: i32) -> i32 {
+        self.monitors
+            .get(&monitor_id)
+            .map(|m| m.y + m.height + offset)
+            .unwrap_or(10000)
+    }
+
     pub fn monitor_name(&self, monitor_id: i32) -> String {
         self.monitors
             .get(&monitor_id)
