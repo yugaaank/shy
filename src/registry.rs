@@ -98,6 +98,12 @@ impl Registry {
             entry.hidden = false;
             let cmd = format!("dispatch hl.dsp.window.move({{ x = {}, y = {}, window = \"address:{}\" }})", entry.saved_x, entry.saved_y, addr);
             ipc.send_command(&cmd);
+
+            let center_x = entry.saved_x + (entry.width / 2);
+            let center_y = entry.saved_y + (entry.height / 2);
+            let cursor_cmd = format!("dispatch hl.dsp.cursor.move({{ x = {}, y = {} }})", center_x, center_y);
+            ipc.send_command(&cursor_cmd);
+
             log::info!("Restored window {} to {},{}", addr, entry.saved_x, entry.saved_y);
         }
     }
