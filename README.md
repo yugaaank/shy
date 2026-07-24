@@ -13,7 +13,11 @@
 
 *Floating windows that know when to get out of the way.*
 
-[Watch the demo](assets/output.mp4)
+<div align="center">
+
+<video src="https://github.com/user-attachments/assets/b5736800-4d78-4bdf-908b-37838fc4dfaf" controls width="100%" />
+
+</div>
 
 [Installation](#install) · [Configuration](#configuration) · [How It Works](#how-it-works)
 
