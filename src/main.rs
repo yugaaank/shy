@@ -19,6 +19,8 @@ fn main() {
     let mut registry = registry::Registry::new();
     registry.scan(&ipc, &monitors, config.hide_offset);
 
+    let mut state = handler::State::new();
+
     let (tx, rx) = mpsc::channel::<String>();
 
     // Event listener thread
@@ -29,7 +31,7 @@ fn main() {
 
     // Main loop - process events
     for event in rx {
-        handler::handle(&event, &mut registry, &ipc, &mut monitors, &config);
+        handler::handle(&event, &mut registry, &ipc, &mut monitors, &config, &mut state);
     }
 
     log::error!("Event stream ended, exiting");

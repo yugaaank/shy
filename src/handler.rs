@@ -3,6 +3,21 @@ use crate::ipc::HyprIpc;
 use crate::monitor::MonitorCache;
 use crate::registry::Registry;
 use crate::types::HyprClient;
+use std::time::{Duration, Instant};
+
+pub struct State {
+    pub switcher_active: bool,
+    pub last_switcher_time: Instant,
+}
+
+impl State {
+    pub fn new() -> Self {
+        Self {
+            switcher_active: false,
+            last_switcher_time: Instant::now() - Duration::from_secs(10),
+        }
+    }
+}
 
 pub fn handle(
     event: &str,
@@ -10,6 +25,7 @@ pub fn handle(
     ipc: &HyprIpc,
     monitors: &mut MonitorCache,
     config: &Config,
+    state: &mut State,
 ) {
     let parts: Vec<&str> = event.splitn(2, ">>").collect();
     if parts.len() < 2 {
@@ -21,7 +37,9 @@ pub fn handle(
     log::info!("Received event: {} >> {}", event_name, payload);
 
     match event_name {
-        "activewindowv2" | "activewindow" => handle_focus(payload, registry, ipc, monitors, config),
+        "activewindowv2" | "activewindow" => handle_focus(payload, registry, ipc, monitors, config, state),
+        "openlayer" => handle_open_layer(payload, state),
+        "closelayer" => handle_close_layer(payload, state),
         "openwindow" => handle_open(payload, registry, ipc, monitors, config),
         "closewindow" => handle_close(payload, registry),
         "movewindow" => handle_move(payload, registry),
@@ -30,6 +48,27 @@ pub fn handle(
             monitors.refresh(ipc);
         }
         _ => {} // workspace, focusedmon, etc. → no-op
+    }
+}
+
+fn is_switcher_layer(layer_name: &str) -> bool {
+    let l = layer_name.to_lowercase();
+    l.contains("switcher") || l.contains("rofi") || l.contains("walker") || l.contains("overview") || l.contains("tab") || l.contains("launcher")
+}
+
+fn handle_open_layer(payload: &str, state: &mut State) {
+    if is_switcher_layer(payload) {
+        log::info!("Switcher layer opened: {}", payload);
+        state.switcher_active = true;
+        state.last_switcher_time = Instant::now();
+    }
+}
+
+fn handle_close_layer(payload: &str, state: &mut State) {
+    if is_switcher_layer(payload) {
+        log::info!("Switcher layer closed: {}", payload);
+        state.switcher_active = false;
+        state.last_switcher_time = Instant::now();
     }
 }
 
@@ -46,7 +85,14 @@ fn split_fields(payload: &str) -> Vec<&str> {
     payload.split(|c| c == ',' || c == '|').collect()
 }
 
-fn handle_focus(payload: &str, registry: &mut Registry, ipc: &HyprIpc, monitors: &MonitorCache, config: &Config) {
+fn handle_focus(
+    payload: &str,
+    registry: &mut Registry,
+    ipc: &HyprIpc,
+    monitors: &MonitorCache,
+    config: &Config,
+    state: &State,
+) {
     let addr = normalize_addr(payload);
     if addr == "0x" {
         return;
@@ -92,10 +138,15 @@ fn handle_focus(payload: &str, registry: &mut Registry, ipc: &HyprIpc, monitors:
         // Focused window is floating → restore it
         registry.restore(&addr, ipc);
     } else {
-        // Focused window is tiled → hide all floating
-        let addrs: Vec<String> = registry.windows.keys().cloned().collect();
-        for a in addrs {
-            registry.hide(&a, ipc, monitors, config.hide_offset);
+        // Focused window is tiled → hide floating windows only if switcher active or ignore_hover is false
+        let is_switcher = state.switcher_active || state.last_switcher_time.elapsed() < Duration::from_millis(600);
+        if !config.ignore_hover || is_switcher {
+            let addrs: Vec<String> = registry.windows.keys().cloned().collect();
+            for a in addrs {
+                registry.hide(&a, ipc, monitors, config.hide_offset);
+            }
+        } else {
+            log::info!("Ignoring mouse hover focus change on tiled window {}", addr);
         }
     }
 }

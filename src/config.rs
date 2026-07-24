@@ -6,6 +6,12 @@ pub struct Config {
     pub hide_offset: i32,
     pub debug: bool,
     pub ignore: Vec<String>,
+    #[serde(default = "default_ignore_hover")]
+    pub ignore_hover: bool,
+}
+
+fn default_ignore_hover() -> bool {
+    true
 }
 
 impl Default for Config {
@@ -14,6 +20,7 @@ impl Default for Config {
             hide_offset: 300,
             debug: false,
             ignore: vec![],
+            ignore_hover: true,
         }
     }
 }
