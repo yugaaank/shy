@@ -52,12 +52,29 @@ impl Registry {
         y: i32,
         width: i32,
         height: i32,
+        monitors: &MonitorCache,
+        hide_offset: i32,
     ) {
+        let off_x = monitors
+            .monitor_id(monitor)
+            .map(|id| monitors.get_offscreen_x(id, hide_offset))
+            .unwrap_or(1920);
+
+        let valid_x = if x >= (off_x - 50) {
+            if let Some(existing) = self.windows.get(addr) {
+                existing.saved_x
+            } else {
+                100
+            }
+        } else {
+            x
+        };
+
         let entry = WindowEntry {
             addr: addr.to_string(),
             workspace,
             monitor: monitor.to_string(),
-            saved_x: x,
+            saved_x: valid_x,
             saved_y: y,
             width,
             height,
@@ -65,7 +82,7 @@ impl Registry {
         };
         let prop_cmd = format!("dispatch hl.dsp.window.set_prop({{ prop = \"animation\", value = \"none\", window = \"address:{}\" }})", addr);
         ipc.send_command(&prop_cmd);
-        log::info!("Registered new window {}", addr);
+        log::info!("Registered new window {} with saved_x={}", addr, valid_x);
         self.windows.insert(addr.to_string(), entry);
     }
 
@@ -122,16 +139,19 @@ impl Registry {
         }
     }
 
-    pub fn update_position(&mut self, addr: &str, x: i32, y: i32) {
+    pub fn update_position(&mut self, addr: &str, x: i32, y: i32, monitors: &MonitorCache, hide_offset: i32) {
         if let Some(entry) = self.windows.get_mut(addr) {
-            if !entry.hidden {
+            let off_x = monitors.monitor_id(&entry.monitor)
+                .map(|id| monitors.get_offscreen_x(id, hide_offset))
+                .unwrap_or(1920);
+            if !entry.hidden && x < (off_x - 50) {
                 entry.saved_x = x;
                 entry.saved_y = y;
             }
         }
     }
 
-    pub fn update_floating(&mut self, addr: &str, floating: bool, ipc: &HyprIpc, monitors: &MonitorCache) {
+    pub fn update_floating(&mut self, addr: &str, floating: bool, ipc: &HyprIpc, monitors: &MonitorCache, hide_offset: i32) {
         if floating {
             let response = ipc.send_command("j/clients");
             if let Ok(clients) = serde_json::from_str::<Vec<crate::types::HyprClient>>(&response) {
@@ -146,6 +166,8 @@ impl Registry {
                         c.at[1],
                         c.size[0],
                         c.size[1],
+                        monitors,
+                        hide_offset,
                     );
                 }
             }

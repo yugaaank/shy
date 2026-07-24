@@ -42,8 +42,8 @@ pub fn handle(
         "closelayer" => handle_close_layer(payload, state),
         "openwindow" => handle_open(payload, registry, ipc, monitors, config),
         "closewindow" => handle_close(payload, registry),
-        "movewindow" => handle_move(payload, registry),
-        "changefloating" => handle_float_change(payload, registry, ipc, monitors),
+        "movewindow" => handle_move(payload, registry, monitors, config),
+        "changefloating" => handle_float_change(payload, registry, ipc, monitors, config),
         "monitoradded" | "monitorremoved" => {
             monitors.refresh(ipc);
         }
@@ -121,6 +121,8 @@ fn handle_focus(
                     c.at[1],
                     c.size[0],
                     c.size[1],
+                    monitors,
+                    config.hide_offset,
                 );
             }
         }
@@ -193,6 +195,8 @@ fn handle_open(
                 c.at[1],
                 c.size[0],
                 c.size[1],
+                monitors,
+                config.hide_offset,
             );
         }
     }
@@ -203,14 +207,14 @@ fn handle_close(payload: &str, registry: &mut Registry) {
     registry.remove(&addr);
 }
 
-fn handle_move(payload: &str, registry: &mut Registry) {
+fn handle_move(payload: &str, registry: &mut Registry, monitors: &MonitorCache, config: &Config) {
     let fields = split_fields(payload);
     if fields.len() < 3 {
         return;
     }
     let addr = normalize_addr(fields[0]);
     if let (Ok(x), Ok(y)) = (fields[1].parse::<i32>(), fields[2].parse::<i32>()) {
-        registry.update_position(&addr, x, y);
+        registry.update_position(&addr, x, y, monitors, config.hide_offset);
     }
 }
 
@@ -219,6 +223,7 @@ fn handle_float_change(
     registry: &mut Registry,
     ipc: &HyprIpc,
     monitors: &MonitorCache,
+    config: &Config,
 ) {
     let fields = split_fields(payload);
     if fields.len() < 2 {
@@ -226,5 +231,5 @@ fn handle_float_change(
     }
     let addr = normalize_addr(fields[0]);
     let floating = fields[1] == "1";
-    registry.update_floating(&addr, floating, ipc, monitors);
+    registry.update_floating(&addr, floating, ipc, monitors, config.hide_offset);
 }
