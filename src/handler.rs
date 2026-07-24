@@ -42,6 +42,10 @@ fn normalize_addr(raw: &str) -> String {
     }
 }
 
+fn split_fields(payload: &str) -> Vec<&str> {
+    payload.split(|c| c == ',' || c == '|').collect()
+}
+
 fn handle_focus(payload: &str, registry: &mut Registry, ipc: &HyprIpc, monitors: &MonitorCache, config: &Config) {
     let addr = normalize_addr(payload);
     if addr == "0x" {
@@ -57,6 +61,25 @@ fn handle_focus(payload: &str, registry: &mut Registry, ipc: &HyprIpc, monitors:
         }
     };
 
+    // Dynamically register any floating window not yet in the registry
+    for c in &clients {
+        if c.floating && c.mapped && !c.hidden {
+            if !registry.windows.contains_key(&c.address) {
+                let mon_name = monitors.monitor_name(c.monitor);
+                registry.register(
+                    ipc,
+                    &c.address,
+                    c.workspace.id,
+                    &mon_name,
+                    c.at[0],
+                    c.at[1],
+                    c.size[0],
+                    c.size[1],
+                );
+            }
+        }
+    }
+
     let focused = match clients.iter().find(|c| c.address == addr) {
         Some(c) => c,
         None => {
@@ -70,8 +93,6 @@ fn handle_focus(payload: &str, registry: &mut Registry, ipc: &HyprIpc, monitors:
         registry.restore(&addr, ipc);
     } else {
         // Focused window is tiled → hide all floating
-        // Layer surfaces, bars, notifications etc. don't appear in clients -j,
-        // so they're automatically filtered out by the find() call below.
         let addrs: Vec<String> = registry.windows.keys().cloned().collect();
         for a in addrs {
             registry.hide(&a, ipc, monitors, config.hide_offset);
@@ -86,8 +107,7 @@ fn handle_open(
     monitors: &MonitorCache,
     config: &Config,
 ) {
-    // openwindow format: addr|workspace|class|title|...
-    let fields: Vec<&str> = payload.split('|').collect();
+    let fields = split_fields(payload);
     if fields.len() < 4 {
         return;
     }
@@ -99,9 +119,6 @@ fn handle_open(
         return;
     }
 
-    // Fetch full client info
-    // Layer surfaces, bars, notifications etc. don't appear in clients -j,
-    // so they're automatically filtered out by the find() call below.
     let response = ipc.send_command("j/clients");
     let clients: Vec<HyprClient> = match serde_json::from_str(&response) {
         Ok(c) => c,
@@ -131,8 +148,7 @@ fn handle_close(payload: &str, registry: &mut Registry) {
 }
 
 fn handle_move(payload: &str, registry: &mut Registry) {
-    // movewindow format: addr|x|y
-    let fields: Vec<&str> = payload.split('|').collect();
+    let fields = split_fields(payload);
     if fields.len() < 3 {
         return;
     }
@@ -148,8 +164,7 @@ fn handle_float_change(
     ipc: &HyprIpc,
     monitors: &MonitorCache,
 ) {
-    // changefloating format: addr|floating
-    let fields: Vec<&str> = payload.split('|').collect();
+    let fields = split_fields(payload);
     if fields.len() < 2 {
         return;
     }
